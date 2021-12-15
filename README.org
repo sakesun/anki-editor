@@ -1,5 +1,3 @@
-[[http://melpa.org/#/anki-editor][file:http://melpa.org/packages/anki-editor-badge.svg]]
-
 
 anki-editor -- Emacs minor mode for making Anki cards with Org
 

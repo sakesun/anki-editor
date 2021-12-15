@@ -1,6 +1,9 @@
 [[http://melpa.org/#/anki-editor][file:http://melpa.org/packages/anki-editor-badge.svg]]
 
+
 anki-editor -- Emacs minor mode for making Anki cards with Org
+
+/Patched to use Emacs url module instead of emacs-request. Make it faster (At least on Windows)./
 
 /Since I'm not a native English speaker, feel free to correct me if
 there were any ambiguity or grammatical mistakes ;-)/

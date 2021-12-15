@@ -68,6 +68,9 @@
 (require 'ox-html)
 (require 'request)
 
+(require 'url)      ;; anki-direct patch
+(require 'subr-x)   ;; anki-direct patch
+
 (defconst anki-editor-prop-note-type "ANKI_NOTE_TYPE")
 (defconst anki-editor-prop-note-id "ANKI_NOTE_ID")
 (defconst anki-editor-prop-deck "ANKI_DECK")

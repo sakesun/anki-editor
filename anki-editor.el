@@ -773,6 +773,72 @@ bugfixes or new features of AnkiConnect."
         (message "AnkiConnect has been upgraded, you might have to restart Anki to make it in effect.")))))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; anki-direct patch
+
+(defcustom anki-direct-active t "Activate anki-direct mode." :type 'boolean)
+(defconst  prev-anki-editor--anki-connect-invoke (symbol-function 'anki-editor--anki-connect-invoke))
+
+(defun anki-direct--http-do (method url headers entity)
+  "Send ENTITY and HEADERS to URL as a METHOD request.  Adapted from restclient module."
+  (let ((url-request-method (encode-coding-string method 'us-ascii))
+        (url-request-extra-headers '())
+        (url-request-data (encode-coding-string entity 'utf-8))
+        (url-mime-charset-string (url-mime-charset-string))
+        (url-mime-language-string nil)
+        (url-mime-encoding-string nil)
+        (url-mime-accept-string nil)
+        (url-personal-mail-address nil))
+    (dolist (header headers)
+      (let* ((mapped (assoc-string (downcase (car header))
+                                   '(("from"            . url-personal-mail-address)
+                                     ("accept-encoding" . url-mime-encoding-string)
+                                     ("accept-charset"  . url-mime-charset-string)
+                                     ("accept-language" . url-mime-language-string)
+                                     ("accept"          . url-mime-accept-string)))))
+        (if mapped
+            (set (cdr mapped) (encode-coding-string (cdr header) 'us-ascii))
+          (let* ((hkey (encode-coding-string (car header) 'us-ascii))
+                 (hvalue (encode-coding-string (cdr header) 'us-ascii)))
+            (setq url-request-extra-headers (cons (cons hkey hvalue) url-request-extra-headers))))))
+    (save-excursion
+      (with-current-buffer
+          (url-retrieve-synchronously url)
+        (buffer-string)))
+    ))
+
+(defun anki-direct--json-do (url obj)
+  "Post Json OBJ to URL and expecting Json return."
+  (let ((resp (anki-direct--http-do "POST" url '(("Content-Type" . "text/json; charset=utf-8")) (json-encode obj))))
+    (json-parse-string
+     (string-join (cdr (split-string resp "\n\n")) "\n\n")
+     :object-type  'alist
+     :array-type   'list
+     :null-object  'nil
+     :false-object 'nil)))
+
+(defun anki-direct--invoke (action &optional params)
+  "Invoke AnkiConnect with ACTION and PARAMS."
+  (let ((entity           (anki-editor--anki-connect-action action params 5))
+        (json-array-type  'list))
+    (anki-direct--json-do
+     (format "http://%s:%s" anki-editor-anki-connect-listening-address anki-editor-anki-connect-listening-port)
+     entity)
+    )
+  )
+
+(defun anki-direct--anki-connect-invoke (action &optional params)
+  "Patched Invoke AnkiConnect with ACTION and PARAMS."
+  (if anki-direct-active
+      (anki-direct--invoke action params)
+    (when prev-anki-editor--anki-connect-invoke
+      (funcall prev-anki-editor--anki-connect-invoke action params))))
+
+(fset 'anki-editor--anki-connect-invoke #'anki-direct--anki-connect-invoke)
+
+;;; anki-direct patch ends here
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (provide 'anki-editor)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
